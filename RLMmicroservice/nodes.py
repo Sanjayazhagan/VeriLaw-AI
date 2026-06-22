@@ -27,9 +27,6 @@ def update_progress(doc_id: str, step: str, percent: int):
     except Exception as e:
         print(f"Error updating progress in DB: {e}")
 
-# Centralized LLM Instances
-llm = ChatGroq(temperature=0, model_name="llama-3.1-8b-instant")
-strategist_llm_bound = llm.with_structured_output(StrategistDecision)
 
 @retry(wait=wait_exponential(multiplier=2, min=10, max=60), stop=stop_after_attempt(5))
 async def safe_ainvoke(llm_bound, prompt):
