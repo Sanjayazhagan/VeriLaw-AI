@@ -20,8 +20,9 @@ app = FastAPI(title="Harvey RLM Microservice")
 
 @app.on_event("startup")
 async def startup_event():
-    print("Spawning background worker loop...")
-    asyncio.create_task(start_worker())
+    print("Spawning 3 background worker loops for concurrent processing...")
+    for _ in range(3):
+        asyncio.create_task(start_worker())
 
 # Connect to Upstash Serverless Redis
 redis_url = os.getenv("REDIS_URL", "redis://localhost:6379").strip()

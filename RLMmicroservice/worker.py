@@ -100,23 +100,24 @@ async def process_audit(job_str: str):
     except Exception as e:
         print(f"[ERROR] Job {job_id} Failed: {str(e)}")
         import os
-        import sqlite3
-        db_path = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "harvey_audit.db"))
-        try:
-            conn = sqlite3.connect(db_path)
-            cursor = conn.cursor()
-            cursor.execute("""
-                UPDATE documents 
-                SET status = 'failed',
-                    progress_step = 'Audit Failed',
-                    progress_percent = 100
-                WHERE id = ?
-            """, (doc_id,))
-            conn.commit()
-            conn.close()
-            print(f"[WARNING] Marked document {doc_id} as FAILED in database.")
-        except Exception as db_err:
-            print(f"[ERROR] Failed to mark document status to FAILED in DB: {db_err}")
+        import psycopg2
+        db_url = os.getenv("DATABASE_URL")
+        if db_url:
+            try:
+                conn = psycopg2.connect(db_url)
+                cursor = conn.cursor()
+                cursor.execute("""
+                    UPDATE documents 
+                    SET status = 'failed',
+                        progress_step = 'Audit Failed',
+                        progress_percent = 100
+                    WHERE id = %s
+                """, (doc_id,))
+                conn.commit()
+                conn.close()
+                print(f"[WARNING] Marked document {doc_id} as FAILED in database.")
+            except Exception as db_err:
+                print(f"[ERROR] Failed to mark document status to FAILED in DB: {db_err}")
 
 
 async def start_worker():
