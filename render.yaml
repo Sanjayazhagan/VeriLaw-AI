@@ -10,8 +10,10 @@ services:
     envVars:
       - key: DATABASE_URL
         sync: false # Set this in Render dashboard from Neon
-      - key: PYTHON_WORKER_URL
+      - key: FASTAPI_URL
         value: "https://verilaw-python-api.onrender.com"
+      - key: INTERNAL_SERVICE_TOKEN
+        value: "generate-a-secure-random-token-here"
 
   # 2. Python AI Microservice (FastAPI + Worker)
   - type: web
