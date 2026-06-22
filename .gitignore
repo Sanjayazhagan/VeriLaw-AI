@@ -1,0 +1,16 @@
+# Node / JS
+node_modules/
+dist/
+.env
+.DS_Store
+
+# Python
+venv/
+__pycache__/
+*.pyc
+.env
+
+# Database
+*.db
+*.sqlite
+harvey_audit.db

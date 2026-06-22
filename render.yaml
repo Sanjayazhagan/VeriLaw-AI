@@ -1,0 +1,30 @@
+services:
+  # 1. Node.js API Gateway (Express)
+  - type: web
+    name: verilaw-node-api
+    env: node
+    region: oregon
+    plan: free
+    buildCommand: "cd Server && npm install && npm run build"
+    startCommand: "cd Server && npm start"
+    envVars:
+      - key: DATABASE_URL
+        sync: false # Set this in Render dashboard from Neon
+      - key: PYTHON_WORKER_URL
+        value: "https://verilaw-python-api.onrender.com"
+
+  # 2. Python AI Microservice (FastAPI + Worker)
+  - type: web
+    name: verilaw-python-api
+    env: python
+    region: oregon
+    plan: free
+    buildCommand: "cd RLMmicroservice && pip install -r requirements.txt"
+    startCommand: "cd RLMmicroservice && uvicorn main:app --host 0.0.0.0 --port $PORT"
+    envVars:
+      - key: PYTHON_VERSION
+        value: "3.11.0"
+      - key: INTERNAL_SERVICE_TOKEN
+        value: "generate-a-secure-random-token-here"
+      - key: REDIS_URL
+        sync: false # Set this in Render dashboard from Upstash
