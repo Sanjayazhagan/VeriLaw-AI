@@ -323,6 +323,7 @@ export default function App() {
       fetchDocuments();
     } catch (err: any) {
       setUploadError(err.message || 'An error occurred during file upload.');
+    } finally {
       setIsUploading(false);
     }
   };
