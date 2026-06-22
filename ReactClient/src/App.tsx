@@ -474,34 +474,61 @@ export default function App() {
             }
           };
           
-          // Try full clause first
+          // Strategy 1: Try full clause regex match (whitespace-insensitive)
           let parts = trySplitWithPattern(seg.text, clauseToFind);
           
-          // Fallback: try first 100 characters of the clause (enough to uniquely identify)
-          if (!parts && clauseToFind.length > 120) {
-            const shortClause = clauseToFind.substring(0, 100);
-            // Find where this prefix starts and grab until end of sentence (period + space/newline or end of paragraph)
+          // Strategy 2: Try simple indexOf (case-insensitive) for short clauses
+          if (!parts) {
+            const lowerText = seg.text.toLowerCase();
+            const lowerClause = clauseToFind.toLowerCase();
+            const idx = lowerText.indexOf(lowerClause);
+            if (idx !== -1) {
+              const before = seg.text.substring(0, idx);
+              const matched = seg.text.substring(idx, idx + clauseToFind.length);
+              const after = seg.text.substring(idx + clauseToFind.length);
+              parts = [before, matched, after];
+            }
+          }
+          
+          // Strategy 3: For long clauses, try first 80 characters as prefix and extend to sentence end
+          if (!parts && clauseToFind.length > 80) {
+            const shortClause = clauseToFind.substring(0, 80);
             const shortRegexStr = escapeRegExp(shortClause).replace(/\s+/g, '\\s+');
             try {
               const findStart = new RegExp(shortRegexStr, 'gi');
               const match = findStart.exec(seg.text);
               if (match) {
-                // From the match start, grab forward until we hit a period followed by whitespace/newline/end
                 const startPos = match.index;
                 const remaining = seg.text.substring(startPos);
-                // Find the end of the sentence - look for a period followed by quote or whitespace or end
                 const endMatch = remaining.match(/^[\s\S]*?[.]["'\s\n]|^[\s\S]*?[.]$/);
                 if (endMatch) {
                   const matchedText = endMatch[0].replace(/[\s\n]+$/, '');
                   const before = seg.text.substring(0, startPos);
                   const after = seg.text.substring(startPos + matchedText.length);
-                  parts = [before, matchedText, after].filter(p => p !== undefined);
+                  parts = [before, matchedText, after];
                 }
               }
             } catch {
               // ignore
             }
           }
+          
+          // Strategy 4: Try matching each word of the clause to find a containing line/sentence
+          if (!parts && clauseToFind.length >= 3 && clauseToFind.length <= 30) {
+            // For very short clauses (like "§ 10.4"), do a char-by-char search
+            // accounting for potential Unicode differences in the § symbol
+            const normalizedSegText = seg.text.replace(/[§\u00A7]/g, '§');
+            const normalizedClause = clauseToFind.replace(/[§\u00A7]/g, '§');
+            const idx = normalizedSegText.toLowerCase().indexOf(normalizedClause.toLowerCase());
+            if (idx !== -1) {
+              const before = seg.text.substring(0, idx);
+              const matched = seg.text.substring(idx, idx + normalizedClause.length);
+              const after = seg.text.substring(idx + normalizedClause.length);
+              parts = [before, matched, after];
+            }
+          }
+          
+          console.log(`[RISK MATCH] Clause: "${clauseToFind.substring(0, 50)}..." | Found: ${parts ? 'YES' : 'NO'} | Page text snippet: "${seg.text.substring(0, 80)}..."`);
           
           if (parts && parts.length > 1) {
             parts.forEach((part, index) => {
