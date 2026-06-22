@@ -1451,6 +1451,7 @@ export default function App() {
                   ref={leftPaneRef}
                   style={{
                     flex: 1,
+                    minHeight: 0,
                     padding: '1.5rem',
                     overflowY: 'auto',
                     fontFamily: 'var(--font-sans)',
@@ -1546,7 +1547,7 @@ export default function App() {
                 </div>
 
                 {/* Tab content panel */}
-                <div style={{ flex: 1, padding: '1.5rem', overflowY: 'auto' }}>
+                <div style={{ flex: 1, minHeight: 0, padding: '1.5rem', overflowY: 'auto' }}>
                   
                   {!detailDoc ? (
                     <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100%' }}>
