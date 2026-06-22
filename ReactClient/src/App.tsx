@@ -1402,45 +1402,47 @@ export default function App() {
 
                   {/* Toggle Switch */}
                   {detailDoc && (
-                    <div style={{ display: 'flex', background: 'rgba(0,0,0,0.3)', padding: '2px', borderRadius: '8px', border: '1px solid var(--border-color)' }}>
+                    <div style={{ display: 'flex', background: 'rgba(0,0,0,0.06)', padding: '4px', borderRadius: '8px', border: '1px solid var(--border-color)' }}>
                       <button
                         onClick={() => setViewMode('scrubbed')}
                         style={{
                           background: viewMode === 'scrubbed' ? 'rgba(239, 68, 68, 0.15)' : 'transparent',
                           border: 'none',
                           outline: 'none',
-                          color: viewMode === 'scrubbed' ? '#fca5a5' : 'var(--text-muted)',
-                          padding: '4px 10px',
+                          color: viewMode === 'scrubbed' ? '#b91c1c' : 'var(--text-secondary)',
+                          padding: '6px 12px',
                           borderRadius: '6px',
-                          fontSize: '0.75rem',
-                          fontWeight: 500,
+                          fontSize: '0.8rem',
+                          fontWeight: 600,
                           cursor: 'pointer',
                           display: 'flex',
                           alignItems: 'center',
-                          gap: '4px',
+                          gap: '6px',
+                          transition: 'all 0.2s',
                         }}
                       >
-                        <ShieldCheck size={12} />
+                        <ShieldCheck size={14} />
                         <span>PII Redacted</span>
                       </button>
                       <button
                         onClick={() => setViewMode('original')}
                         style={{
-                          background: viewMode === 'original' ? 'rgba(239, 68, 68, 0.15)' : 'transparent',
+                          background: viewMode === 'original' ? 'rgba(59, 130, 246, 0.15)' : 'transparent',
                           border: 'none',
                           outline: 'none',
-                          color: viewMode === 'original' ? '#fca5a5' : 'var(--text-muted)',
-                          padding: '4px 10px',
+                          color: viewMode === 'original' ? '#1d4ed8' : 'var(--text-secondary)',
+                          padding: '6px 12px',
                           borderRadius: '6px',
-                          fontSize: '0.75rem',
-                          fontWeight: 500,
+                          fontSize: '0.8rem',
+                          fontWeight: 600,
                           cursor: 'pointer',
                           display: 'flex',
                           alignItems: 'center',
-                          gap: '4px',
+                          gap: '6px',
+                          transition: 'all 0.2s',
                         }}
                       >
-                        <EyeOff size={12} />
+                        <EyeOff size={14} />
                         <span>Original Text</span>
                       </button>
                     </div>
