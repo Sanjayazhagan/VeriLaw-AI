@@ -22,8 +22,12 @@ async def startup_event():
     print("Spawning background worker loop...")
     asyncio.create_task(start_worker())
 
-# Connect to your Redis instance running in Docker
-redis_client = redis.Redis(host='localhost', port=6379, db=0, decode_responses=True)
+# Connect to Upstash Serverless Redis
+redis_url = os.getenv("REDIS_URL", "redis://localhost:6379")
+# Ensure rediss:// is used for TLS if the user provided redis:// but it's an upstash URL requiring TLS
+if "upstash.io" in redis_url and redis_url.startswith("redis://"):
+    redis_url = redis_url.replace("redis://", "rediss://", 1)
+redis_client = redis.from_url(redis_url, decode_responses=True)
 
 # ==========================================
 # 1. THE SECURITY LOCK

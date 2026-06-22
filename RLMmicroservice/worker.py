@@ -3,8 +3,12 @@ import json
 import redis.asyncio as redis
 from graph import compiled_graph
 
+import os
 # Connect to the exact same Redis instance
-redis_client = redis.Redis(host='localhost', port=6379, db=0, decode_responses=True)
+redis_url = os.getenv("REDIS_URL", "redis://localhost:6379")
+if "upstash.io" in redis_url and redis_url.startswith("redis://"):
+    redis_url = redis_url.replace("redis://", "rediss://", 1)
+redis_client = redis.from_url(redis_url, decode_responses=True)
 
 async def process_audit(job_str: str):
     job_data = json.loads(job_str)
