@@ -63,7 +63,6 @@ router.post('/upload', authenticateJWT, upload.single('contract'), async (req: A
       status: 'processing',
       progressStep: 'PII Scrubbed & Queuing...',
       progressPercent: 25,
-      createdAt: new Date().toISOString(),
     });
 
     // 4. Split scrubbed text into page items for FastAPI
