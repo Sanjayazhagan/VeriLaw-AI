@@ -1,0 +1,27 @@
+const text = `10. Limitation of Liability
+EXCEPT FOR LIABILITY ARISING FROM A PARTY'S BREACH OF SECTION 7
+(CONFIDENTIALITY), A PARTY'S INDEMNIFICATION OBLIGATIONS UNDER SECTION 11, OR
+A PARTY'S GROSS NEGLIGENCE OR WILLFUL MISCONDUCT, NEITHER PARTY SHALL BE
+LIABLE TO THE OTHER FOR ANY INDIRECT, INCIDENTAL, SPECIAL, CONSEQUENTIAL, OR
+PUNITIVE DAMAGES ARISING OUT OF OR RELATED TO THIS AGREEMENT, REGARDLESS
+OF THE THEORY OF LIABILITY, EVEN IF SUCH PARTY HAS BEEN ADVISED OF THE
+POSSIBILITY OF SUCH DAMAGES.`;
+
+const clause = `EXCEPT FOR LIABILITY ARISING FROM A PARTY'S BREACH OF SECTION 7 (CONFIDENTIALITY), A PARTY'S INDEMNIFICATION OBLIGATIONS UNDER SECTION 11, OR A PARTY'S GROSS NEGLIGENCE OR WILLFUL MISCONDUCT, NEITHER PARTY SHALL BE LIABLE TO THE OTHER FOR ANY INDIRECT, INCIDENTAL, SPECIAL, CONSEQUENTIAL, OR PUNITIVE DAMAGES ARISING OUT OF OR RELATED TO THIS AGREEMENT, REGARDLESS OF THE THEORY OF LIABILITY, EVEN IF SUCH PARTY HAS BEEN ADVISED OF THE POSSIBILITY OF SUCH DAMAGES.`;
+
+const normalizeSpacedText = (input) => input;
+let clauseToFind = normalizeSpacedText(clause);
+
+const escapeRegExp = (str) => str.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+const clauseRegexStr = escapeRegExp(clauseToFind).replace(/\s+|\\s+/g, '\\s+');
+
+const clauseRegex = new RegExp(`(${clauseRegexStr})`, 'gi');
+
+console.log("Regex pattern length:", clauseRegexStr.length);
+const parts = text.split(clauseRegex);
+console.log("Parts length:", parts.length);
+if (parts.length > 1) {
+  console.log("Match found!");
+} else {
+  console.log("No match found!");
+}

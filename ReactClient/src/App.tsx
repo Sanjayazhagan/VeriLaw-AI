@@ -381,11 +381,22 @@ export default function App() {
         .join('\n');
     };
 
+    // Normalize smart/curly quotes and typographic characters to their ASCII equivalents
+    // PDFs often use " " ' ' — but LLMs output straight " and '
+    const normalizeQuotes = (input: string): string => {
+      return input
+        .replace(/[\u201C\u201D\u201E\u201F\u2033\u2036]/g, '"')  // curly double quotes → straight
+        .replace(/[\u2018\u2019\u201A\u201B\u2032\u2035]/g, "'")  // curly single quotes → straight
+        .replace(/[\u2013\u2014]/g, '-')                            // en/em dash → hyphen
+        .replace(/\u2026/g, '...')                                  // ellipsis → three dots
+        .replace(/\u00A0/g, ' ');                                   // non-breaking space → space
+    };
+
     // Use scrubbed text as base to align page boundaries and coordinates exactly
     let fullText = detailDoc.scrubbedText;
     const pages = getPages(fullText);
     const pageIndex = Math.min(Math.max(currentPage - 1, 0), pages.length - 1);
-    let text = normalizeSpacedText(pages[pageIndex] || '');
+    let text = normalizeQuotes(normalizeSpacedText(pages[pageIndex] || ''));
 
     const getDisplayText = (val: string) => {
       if (viewMode === 'scrubbed') return val;
@@ -441,7 +452,7 @@ export default function App() {
           }
 
           // Normalize the risk clause the same way we normalized the page text
-          let clauseToFind = normalizeSpacedText(risk.clause);
+          let clauseToFind = normalizeQuotes(normalizeSpacedText(risk.clause));
           // Skip empty or very short clauses to prevent character-level matching
           if (!clauseToFind || clauseToFind.length < 10) {
             newSegments.push(seg);
@@ -450,30 +461,63 @@ export default function App() {
           
           // Escape regex specials and convert whitespace to match any whitespace
           const escapeRegExp = (str: string) => str.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-          const clauseRegexStr = escapeRegExp(clauseToFind).replace(/\s+|\\s+/g, '\\s+');
           
-          try {
-            const clauseRegex = new RegExp(`(${clauseRegexStr})`, 'gi');
-            const parts = seg.text.split(clauseRegex);
-            
-            if (parts.length > 1) {
-              parts.forEach((part, index) => {
-                if (part) {
-                  if (index % 2 === 0) {
-                    newSegments.push({ text: part, type: 'plain' });
-                  } else {
-                    newSegments.push({
-                      text: part,
-                      type: 'risk',
-                      riskIndex: originalIdx
-                    });
-                  }
-                }
-              });
-            } else {
-              newSegments.push(seg);
+          // Helper: try splitting with a regex pattern, return parts or null if no match
+          const trySplitWithPattern = (haystack: string, pattern: string): string[] | null => {
+            try {
+              const regexStr = escapeRegExp(pattern).replace(/\s+/g, '\\s+');
+              const regex = new RegExp(`(${regexStr})`, 'gi');
+              const parts = haystack.split(regex);
+              return parts.length > 1 ? parts : null;
+            } catch {
+              return null;
             }
-          } catch (e) {
+          };
+          
+          // Try full clause first
+          let parts = trySplitWithPattern(seg.text, clauseToFind);
+          
+          // Fallback: try first 100 characters of the clause (enough to uniquely identify)
+          if (!parts && clauseToFind.length > 120) {
+            const shortClause = clauseToFind.substring(0, 100);
+            // Find where this prefix starts and grab until end of sentence (period + space/newline or end of paragraph)
+            const shortRegexStr = escapeRegExp(shortClause).replace(/\s+/g, '\\s+');
+            try {
+              const findStart = new RegExp(shortRegexStr, 'gi');
+              const match = findStart.exec(seg.text);
+              if (match) {
+                // From the match start, grab forward until we hit a period followed by whitespace/newline/end
+                const startPos = match.index;
+                const remaining = seg.text.substring(startPos);
+                // Find the end of the sentence - look for a period followed by quote or whitespace or end
+                const endMatch = remaining.match(/^[\s\S]*?[.]["'\s\n]|^[\s\S]*?[.]$/);
+                if (endMatch) {
+                  const matchedText = endMatch[0].replace(/[\s\n]+$/, '');
+                  const before = seg.text.substring(0, startPos);
+                  const after = seg.text.substring(startPos + matchedText.length);
+                  parts = [before, matchedText, after].filter(p => p !== undefined);
+                }
+              }
+            } catch {
+              // ignore
+            }
+          }
+          
+          if (parts && parts.length > 1) {
+            parts.forEach((part, index) => {
+              if (part) {
+                if (index % 2 === 0) {
+                  newSegments.push({ text: part, type: 'plain' });
+                } else {
+                  newSegments.push({
+                    text: part,
+                    type: 'risk',
+                    riskIndex: originalIdx
+                  });
+                }
+              }
+            });
+          } else {
             newSegments.push(seg);
           }
         });
