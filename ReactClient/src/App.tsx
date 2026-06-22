@@ -453,8 +453,8 @@ export default function App() {
 
           // Normalize the risk clause the same way we normalized the page text
           let clauseToFind = normalizeQuotes(normalizeSpacedText(risk.clause));
-          // Skip empty or very short clauses to prevent character-level matching
-          if (!clauseToFind || clauseToFind.length < 10) {
+          // Skip empty or whitespace-only clauses
+          if (!clauseToFind || clauseToFind.trim().length < 3) {
             newSegments.push(seg);
             return;
           }
