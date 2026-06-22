@@ -1,4 +1,5 @@
 import os
+import re
 import json
 import uuid
 import uvicorn
@@ -23,7 +24,14 @@ async def startup_event():
     asyncio.create_task(start_worker())
 
 # Connect to Upstash Serverless Redis
-redis_url = os.getenv("REDIS_URL", "redis://localhost:6379")
+redis_url = os.getenv("REDIS_URL", "redis://localhost:6379").strip()
+# Foolproof regex extraction
+match = re.search(r'(rediss?://[^\s\'"]+)', redis_url)
+if match:
+    redis_url = match.group(1)
+else:
+    redis_url = "redis://localhost:6379"
+
 # Ensure rediss:// is used for TLS if the user provided redis:// but it's an upstash URL requiring TLS
 if "upstash.io" in redis_url and redis_url.startswith("redis://"):
     redis_url = redis_url.replace("redis://", "rediss://", 1)
