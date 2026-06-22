@@ -11,21 +11,24 @@ from state import LegalAuditState, WorkerState
 load_dotenv()
 
 def update_progress(doc_id: str, step: str, percent: int):
-    import sqlite3
+    import psycopg2
     import os
-    db_path = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "harvey_audit.db"))
+    db_url = os.getenv("DATABASE_URL")
+    if not db_url:
+        print("DATABASE_URL not set!")
+        return
     try:
-        conn = sqlite3.connect(db_path)
+        conn = psycopg2.connect(db_url)
         cursor = conn.cursor()
         cursor.execute("""
             UPDATE documents 
-            SET progress_step = ?, progress_percent = ?
-            WHERE id = ?
+            SET progress_step = %s, progress_percent = %s
+            WHERE id = %s
         """, (step, percent, doc_id))
         conn.commit()
         conn.close()
     except Exception as e:
-        print(f"Error updating progress in DB: {e}")
+        print(f"Error updating progress in Postgres DB: {e}")
 
 
 @retry(wait=wait_exponential(multiplier=2, min=10, max=60), stop=stop_after_attempt(5))

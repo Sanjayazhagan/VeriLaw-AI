@@ -47,53 +47,55 @@ async def process_audit(job_str: str):
         
         print(f"[SUCCESS] Job {job_id} Complete. Found {len(audit_results['identified_risks'])} risks.")
         
-        # Save audit_results to SQLite database
+        # Save audit_results to PostgreSQL database
         import os
         import uuid
-        import sqlite3
+        import psycopg2
         
-        db_path = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "harvey_audit.db"))
+        db_url = os.getenv("DATABASE_URL")
         result_id = str(uuid.uuid4())
         
-        conn = sqlite3.connect(db_path)
-        cursor = conn.cursor()
-        try:
-            # 1. Update document status, metadata and progress
-            cursor.execute("""
-                UPDATE documents 
-                SET status = 'completed',
-                    contract_type = ?,
-                    risk_level = ?,
-                    selected_model = ?,
-                    progress_step = 'Completed',
-                    progress_percent = 100
-                WHERE id = ?
-            """, (
-                final_state.get("contract_type"),
-                final_state.get("risk_level"),
-                final_state.get("selected_model"),
-                doc_id
-            ))
-            
-            # 2. Insert audit results
-            cursor.execute("""
-                INSERT INTO audit_results (id, document_id, job_id, executive_summary, identified_risks)
-                VALUES (?, ?, ?, ?, ?)
-            """, (
-                result_id,
-                doc_id,
-                job_id,
-                audit_results["executive_summary"],
-                json.dumps(audit_results["identified_risks"])
-            ))
-            conn.commit()
-            print(f"[DATABASE] Saved audit results to database for Job {job_id}.")
-        except Exception as db_err:
-            conn.rollback()
-            print(f"[ERROR] DB Transaction Error: {db_err}")
-            raise db_err
-        finally:
-            conn.close()
+        if db_url:
+            conn = psycopg2.connect(db_url)
+            cursor = conn.cursor()
+            try:
+                # 1. Update document status, metadata and progress
+                cursor.execute("""
+                    UPDATE documents 
+                    SET status = 'completed',
+                        contract_type = %s,
+                        risk_level = %s,
+                        selected_model = %s,
+                        progress_step = 'Completed',
+                        progress_percent = 100
+                    WHERE id = %s
+                """, (
+                    final_state.get("contract_type"),
+                    final_state.get("risk_level"),
+                    final_state.get("selected_model"),
+                    doc_id
+                ))
+                
+                # 2. Insert audit results
+                cursor.execute("""
+                    INSERT INTO audit_results (id, document_id, job_id, executive_summary, identified_risks)
+                    VALUES (%s, %s, %s, %s, %s)
+                """, (
+                    result_id,
+                    doc_id,
+                    job_id,
+                    audit_results["executive_summary"],
+                    json.dumps(audit_results["identified_risks"])
+                ))
+                conn.commit()
+                print(f"[DATABASE] Saved audit results to Postgres for Job {job_id}.")
+            except Exception as e:
+                print(f"[ERROR] Database save failed: {e}")
+                conn.rollback()
+            finally:
+                conn.close()
+        else:
+            print("[ERROR] DATABASE_URL not set! Cannot save to Postgres.")
             
     except Exception as e:
         print(f"[ERROR] Job {job_id} Failed: {str(e)}")

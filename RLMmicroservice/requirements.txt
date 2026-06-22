@@ -27,6 +27,7 @@ langsmith==0.8.7
 orjson==3.11.9
 ormsgpack==1.12.2
 packaging==26.2
+psycopg2-binary
 pydantic==2.13.4
 pydantic_core==2.46.4
 python-dotenv==1.2.2
