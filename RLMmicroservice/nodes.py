@@ -31,14 +31,25 @@ def update_progress(doc_id: str, step: str, percent: int):
         print(f"Error updating progress in Postgres DB: {e}")
 
 
-@retry(wait=wait_exponential(multiplier=2, min=10, max=60), stop=stop_after_attempt(5))
+import asyncio
+
+groq_semaphore = asyncio.Semaphore(3)  # Throttle to max 3 concurrent Groq requests
+
+async def safe_ainvoke_raw(llm_bound, prompt):
+    async with groq_semaphore:
+        # Wrap the LLM call with a 30-second timeout to prevent indefinite hanging
+        return await asyncio.wait_for(llm_bound.ainvoke(prompt), timeout=30.0)
+
+@retry(wait=wait_exponential(multiplier=1, min=2, max=10), stop=stop_after_attempt(3))
 async def safe_ainvoke(llm_bound, prompt):
-    """Wraps the async LLM call in a retry loop for rate limits."""
+    """Wraps the async LLM call in a retry loop for rate limits and timeouts."""
     try:
-        return await llm_bound.ainvoke(prompt)
+        return await safe_ainvoke_raw(llm_bound, prompt)
     except Exception as e:
         if "429" in str(e) or "rate limit" in str(e).lower():
             print("[RATE LIMIT] Rate limit hit! Pausing to let tokens refill...")
+        elif isinstance(e, asyncio.TimeoutError):
+            print("[TIMEOUT] Groq API call timed out! Retrying...")
         raise e 
 
 async def intelligent_pre_flight(chunks: List[Dict[str, Any]], api_key: str = None) -> Tuple[int, str, str, str]:
