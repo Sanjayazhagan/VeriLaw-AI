@@ -448,19 +448,32 @@ export default function App() {
             return;
           }
           
-          const parts = seg.text.split(clauseToFind);
-          if (parts.length > 1) {
-            parts.forEach((part, index) => {
-              if (part) newSegments.push({ text: part, type: 'plain' });
-              if (index < parts.length - 1) {
-                newSegments.push({
-                  text: clauseToFind,
-                  type: 'risk',
-                  riskIndex: originalIdx
-                });
-              }
-            });
-          } else {
+          // Escape regex specials and convert whitespace to match any whitespace
+          const escapeRegExp = (str: string) => str.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+          const clauseRegexStr = escapeRegExp(clauseToFind).replace(/\s+|\\s+/g, '\\s+');
+          
+          try {
+            const clauseRegex = new RegExp(`(${clauseRegexStr})`, 'gi');
+            const parts = seg.text.split(clauseRegex);
+            
+            if (parts.length > 1) {
+              parts.forEach((part, index) => {
+                if (part) {
+                  if (index % 2 === 0) {
+                    newSegments.push({ text: part, type: 'plain' });
+                  } else {
+                    newSegments.push({
+                      text: part,
+                      type: 'risk',
+                      riskIndex: originalIdx
+                    });
+                  }
+                }
+              });
+            } else {
+              newSegments.push(seg);
+            }
+          } catch (e) {
             newSegments.push(seg);
           }
         });
