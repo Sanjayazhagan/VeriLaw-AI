@@ -18,6 +18,54 @@ from worker import start_worker
 
 app = FastAPI(title="Harvey RLM Microservice")
 
+@app.get("/debug")
+async def debug_status():
+    status_info = {}
+    
+    # 1. Check Groq API Key
+    groq_key = os.getenv("GROQ_API_KEY")
+    status_info["groq_api_key_configured"] = bool(groq_key)
+    if groq_key:
+        try:
+            from langchain_groq import ChatGroq
+            llm = ChatGroq(temperature=0, model_name="llama-3.1-8b-instant", api_key=groq_key)
+            res = await llm.ainvoke("hello")
+            status_info["groq_test"] = "success"
+        except Exception as e:
+            status_info["groq_test"] = f"failed: {str(e)}"
+    else:
+        status_info["groq_test"] = "not_configured"
+        
+    # 2. Check Redis URL
+    status_info["redis_url_configured"] = bool(os.getenv("REDIS_URL"))
+    status_info["redis_url_used"] = redis_url
+    try:
+        await asyncio.wait_for(redis_client.ping(), timeout=5.0)
+        status_info["redis_connected"] = True
+    except Exception as e:
+        status_info["redis_connected"] = False
+        status_info["redis_error"] = str(e)
+        
+    # 3. Check DATABASE_URL
+    db_url = os.getenv("DATABASE_URL")
+    status_info["database_url_configured"] = bool(db_url)
+    if db_url:
+        try:
+            import psycopg2
+            conn = psycopg2.connect(db_url)
+            cursor = conn.cursor()
+            cursor.execute("SELECT 1")
+            cursor.fetchone()
+            conn.close()
+            status_info["database_connected"] = True
+        except Exception as e:
+            status_info["database_connected"] = False
+            status_info["database_error"] = str(e)
+    else:
+        status_info["database_connected"] = False
+        
+    return status_info
+
 @app.on_event("startup")
 async def startup_event():
     print("Spawning 3 background worker loops for concurrent processing...")
